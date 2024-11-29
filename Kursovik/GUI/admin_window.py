@@ -1,6 +1,9 @@
+from sqlite3 import IntegrityError
+
 from data_base_application_kursovik.Kursovik.DB.Models.orm_func import OrmFunc
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QTableWidget, QTableWidgetItem,
-                             QVBoxLayout, QWidget, QPushButton, QLabel, QSpacerItem, QSizePolicy, QHBoxLayout, QLineEdit)
+                             QVBoxLayout, QWidget, QPushButton, QLabel, QSpacerItem, QSizePolicy, QHBoxLayout,
+                             QLineEdit, QMessageBox)
 from PyQt5.QtCore import Qt
 from datetime import datetime
 
@@ -37,6 +40,7 @@ class AdminInterface(QWidget):
             self.close()
 
     def create_main_screen(self):
+        self.setGeometry(100, 100, 600, 300)
         self.layout.addWidget(QLabel("Welcome Admin:", alignment=Qt.AlignCenter))
         self.layout.addWidget(QLabel("Select Table:", alignment=Qt.AlignCenter))
 
@@ -81,7 +85,6 @@ class AdminInterface(QWidget):
                 item.widget().deleteLater()
 
     def create_table_widget(self, row_count, column_count, headers):
-
         table_widget = QTableWidget()
         table_widget.setRowCount(row_count)
         table_widget.setColumnCount(column_count)
@@ -98,6 +101,7 @@ class AdminInterface(QWidget):
         projects = OrmFunc.return_projects()
 
         button_layout = QHBoxLayout()
+        self.setGeometry(100,100,1000,600)
 
         # Кнопка "Create project"
         add_project_button = QPushButton("Create project")
@@ -108,6 +112,10 @@ class AdminInterface(QWidget):
         add_project_button1 = QPushButton("Update name")
         add_project_button1.clicked.connect(self.update_name_project)  # Пример действия
         button_layout.addWidget(add_project_button1)
+
+        add_project_button0 = QPushButton("Set department")
+        add_project_button0.clicked.connect(self.set_project_department)  # Пример действия
+        button_layout.addWidget(add_project_button0)
 
         add_project_button2 = QPushButton("Update date end")
         add_project_button2.clicked.connect(self.update_date_end)  # Пример действия
@@ -142,6 +150,7 @@ class AdminInterface(QWidget):
 
     def show_profit_projects(self):
         self.clear_layout()
+        self.setGeometry(100,100,1000,600)
         profit = OrmFunc.calculate_projects_cost()
         table_widget = self.create_table_widget(len(profit), 2, ["Name", "Profit"])
 
@@ -155,6 +164,7 @@ class AdminInterface(QWidget):
     def show_employees(self):
         self.clear_layout()
         employees = OrmFunc.select_all_employees()
+        self.setGeometry(100,100,1000,600)
 
         button_layout = QHBoxLayout()
 
@@ -193,6 +203,7 @@ class AdminInterface(QWidget):
     def show_departments(self):
         self.clear_layout()
         departments = OrmFunc.select_all_departments()
+        self.setGeometry(100,100,1000,600)
 
         button_layout = QHBoxLayout()
 
@@ -222,9 +233,9 @@ class AdminInterface(QWidget):
 
     def show_department_employees(self):
         self.clear_layout()
+        self.setGeometry(100,100,1000,600)
         department_employees = OrmFunc.select_all_departments_employees()
         table_widget = self.create_table_widget(len(department_employees), 3, ["Id", "Department_id", "Employee_id"])
-
         button_layout = QHBoxLayout()
 
         add_project_button = QPushButton("Create department_employee")
@@ -251,11 +262,13 @@ class AdminInterface(QWidget):
         self.add_back_button()
 
     def back_to_main(self):
-        # Очистить текущий вид
-        for i in reversed(range(self.layout.count())):
-            widget = self.layout.itemAt(i).widget()
-            if widget:
-                widget.deleteLater()
+        # # Очистить текущий вид
+        # for i in reversed(range(self.layout.count())):
+        #     widget = self.layout.itemAt(i).widget()
+        #     if widget:
+        #         widget.deleteLater()
+        self.clear_nested_layout(self.layout)
+
 
         # Вернуться к главному экрану
         self.create_main_screen()
@@ -287,7 +300,7 @@ class AdminInterface(QWidget):
         self.layout.addWidget(QLabel("Date real end:"))
         self.layout.addWidget(input_date_real_end)
 
-        btn_submit = QPushButton("Добавить проект")
+        btn_submit = QPushButton("Create project")
         self.layout.addWidget(btn_submit, alignment=Qt.AlignCenter)
 
         # Обработчик нажатия на кнопку
@@ -301,7 +314,7 @@ class AdminInterface(QWidget):
 
             # Проверяем корректность данных
             if not name or not cost.isdigit() or not  date_beg:
-                error_label = QLabel("Ошибка: проверьте введённые данные!")
+                error_label = QLabel("Error, incorrect input data!")
                 error_label.setStyleSheet("color: red;")
                 self.layout.addWidget(error_label)
                 return
@@ -311,14 +324,19 @@ class AdminInterface(QWidget):
             date_real_end = datetime.strptime(date_real_end, "%Y-%m-%d").date() if date_real_end else None
 
             # Добавляем проект в базу данных
-            OrmFunc.create_projects(
-                name=name,
-                cost=float(cost),
-                department=department_id,
-                date_beg=datetime.strptime(date_beg, "%Y-%m-%d").date(),
-                date_end=date_end,
-                date_real_end=date_real_end
-            )
+            try:
+                OrmFunc.create_projects(
+                    name=name,
+                    cost=float(cost),
+                    department=department_id,
+                    date_beg=datetime.strptime(date_beg, "%Y-%m-%d").date(),
+                    date_end=date_end,
+                    date_real_end=date_real_end
+                )
+            except IntegrityError as e:
+                QMessageBox.information(self, "ERROR", "Incorrect create projects, need write date_beg")
+            except ValueError as e:
+                QMessageBox.information(self, "ERROR", "Error, please input correct data")
 
             # Возвращаемся в show_projects
             self.show_projects()
@@ -351,14 +369,19 @@ class AdminInterface(QWidget):
                 return
 
             # Добавляем проект в базу данных
-            OrmFunc.update_name_project(int(id), new_name)
+            try:
+                OrmFunc.update_name_project(int(id), new_name)
+            except TypeError:
+                QMessageBox.information(self, "ERROR", "Project not found")
+                ...
+
             # Возвращаемся в show_projects
             self.show_projects()
         btn_submit.clicked.connect(handle_submit)
         # Кнопка "Назад"
         self.add_back_button()
 
-    def update_date_end(self):
+    def set_project_department(self):
         self.clear_layout()
         # Поля для ввода данных
         input_id = QLineEdit()
@@ -366,29 +389,78 @@ class AdminInterface(QWidget):
         self.layout.addWidget(input_id)
 
         input_new_name = QLineEdit()
-        self.layout.addWidget(QLabel("Date end:"))
+        self.layout.addWidget(QLabel("Department id:"))
         self.layout.addWidget(input_new_name)
 
-        btn_submit = QPushButton("Update date end")
+        btn_submit = QPushButton("Set department")
         self.layout.addWidget(btn_submit, alignment=Qt.AlignCenter)
 
         def handle_submit():
-            id = input_id.text().strip()
-            date_end = input_new_name.text().strip()
+                project_id = input_id.text().strip()
+                department_id = input_new_name.text().strip()
 
-            if not id or not date_end:
-                error_label = QLabel("Ошибка: проверьте введённые данные!")
-                error_label.setStyleSheet("color: red;")
-                self.layout.addWidget(error_label)
-                return
+                if not project_id or not department_id:
+                    error_label = QLabel("ERROR: Incorrect input data")
+                    error_label.setStyleSheet("color: red;")
+                    self.layout.addWidget(error_label)
+                    return
 
-            # Добавляем проект в базу данных
-            OrmFunc.update_date_end(int(id), datetime.strptime(date_end, "%Y-%m-%d").date())
-            # Возвращаемся в show_projects
-            self.show_projects()
+                # Добавляем проект в базу данных
+                try:
+                    OrmFunc.update_department_project(int(project_id), int(department_id))
+                except IntegrityError:
+                    QMessageBox.information(self, "ERROR", "Incorrect input data_end, we need input data_end more then "
+                                                           "date_begin")
+                except ValueError:
+                    QMessageBox.information(self, "ERROR", "Error, please input correct data")
+                except TypeError:
+                    QMessageBox.information(self, "ERROR", "Project or department not found")
+
+                self.show_projects()
+
         btn_submit.clicked.connect(handle_submit)
-        # Кнопка "Назад"
+            # Кнопка "Назад"
         self.add_back_button()
+
+
+    def update_date_end(self):
+            self.clear_layout()
+            # Поля для ввода данных
+            input_id = QLineEdit()
+            self.layout.addWidget(QLabel("Project id:"))
+            self.layout.addWidget(input_id)
+
+            input_new_name = QLineEdit()
+            self.layout.addWidget(QLabel("Date end:"))
+            self.layout.addWidget(input_new_name)
+
+            btn_submit = QPushButton("Update date end")
+            self.layout.addWidget(btn_submit, alignment=Qt.AlignCenter)
+
+            def handle_submit():
+                id = input_id.text().strip()
+                date_end = input_new_name.text().strip()
+
+                if not id or not date_end:
+                    error_label = QLabel("Ошибка: проверьте введённые данные!")
+                    error_label.setStyleSheet("color: red;")
+                    self.layout.addWidget(error_label)
+                    return
+
+                # Добавляем проект в базу данных
+                try:
+                    OrmFunc.update_date_end(int(id), datetime.strptime(date_end, "%Y-%m-%d").date())
+                except IntegrityError as e:
+                    QMessageBox.information(self, "ERROR", "Incorrect input data_end, we need input data_end more then "
+                                                           "date_begin")
+                except ValueError as e:
+                    QMessageBox.information(self, "ERROR", "Error, please input correct data")
+
+                # Возвращаемся в show_projects
+                self.show_projects()
+            btn_submit.clicked.connect(handle_submit)
+            # Кнопка "Назад"
+            self.add_back_button()
 
     def update_date_real_end(self):
         self.clear_layout()
@@ -413,9 +485,16 @@ class AdminInterface(QWidget):
                 error_label.setStyleSheet("color: red;")
                 self.layout.addWidget(error_label)
                 return
-
+            try:
+                OrmFunc.update_date_real_end(int(id), datetime.strptime(date_real_end, "%Y-%m-%d").date())
+            except IntegrityError as e:
+                QMessageBox.information(self, "ERROR", "Incorrect input data_real_end, we need input data_real_end more then date_begin")
+            except ValueError as e:
+                QMessageBox.information(self, "ERROR", "Error, please input correct data")
+            except TypeError as e:
+                QMessageBox.information(self, "ERROR", "This project not found")
             # Добавляем проект в базу данных
-            OrmFunc.update_date_real_end(int(id), datetime.strptime(date_real_end, "%Y-%m-%d").date())
+            # OrmFunc.update_date_real_end(int(id), datetime.strptime(date_real_end, "%Y-%m-%d").date())
             # Возвращаемся в show_projects
             self.show_projects()
         btn_submit.clicked.connect(handle_submit)
@@ -440,7 +519,10 @@ class AdminInterface(QWidget):
                 error_label.setStyleSheet("color: red;")
                 self.layout.addWidget(error_label)
                 return
-            OrmFunc.delete_project(int(id))
+            try:
+                OrmFunc.delete_project(int(id))
+            except TypeError as e:
+                    QMessageBox.information(self, "ERROR", "Project not found")
             self.show_projects()
         btn_submit.clicked.connect(handle_submit)
 
@@ -523,7 +605,11 @@ class AdminInterface(QWidget):
                 error_label.setStyleSheet("color: red;")
                 self.layout.addWidget(error_label)
                 return
-            OrmFunc.update_salary_employees(int(int), float(salary))
+            try:
+                OrmFunc.update_salary_employees(int(id), float(salary))
+            except TypeError as e:
+                QMessageBox.information(self, "ERROR", "Employee not found")
+
             self.show_employees()
 
         btn_submit.clicked.connect(handle_submit)
@@ -553,7 +639,11 @@ class AdminInterface(QWidget):
                 error_label.setStyleSheet("color: red;")
                 self.layout.addWidget(error_label)
                 return
-            OrmFunc.update_position_employees(int(int), str(position))
+            try:
+                OrmFunc.update_position_employees(int(id), str(position))
+            except TypeError as e:
+                QMessageBox.information(self, "ERROR", "Emloyee not found")
+
             self.show_employees()
 
         btn_submit.clicked.connect(handle_submit)
@@ -577,7 +667,11 @@ class AdminInterface(QWidget):
                 error_label.setStyleSheet("color: red;")
                 self.layout.addWidget(error_label)
                 return
-            OrmFunc.delete_empoyee(int(id))
+            try:
+                OrmFunc.delete_empoyee(int(id))
+            except TypeError as e:
+                QMessageBox.information(self, "ERROR", "Emloyee not found")
+
             self.show_employees()
         btn_submit.clicked.connect(handle_submit)
 
@@ -630,7 +724,11 @@ class AdminInterface(QWidget):
                 error_label.setStyleSheet("color: red;")
                 self.layout.addWidget(error_label)
                 return
-            OrmFunc.update_name_department(int(department_id), str(department_name))
+            try:
+                OrmFunc.update_name_department(int(department_id), str(department_name))
+            except TypeError as e:
+                QMessageBox.information(self, "ERROR", "Department not found")
+
             self.show_departments()
         btn_submit.clicked.connect(handle_submit)
 
@@ -654,7 +752,11 @@ class AdminInterface(QWidget):
                 error_label.setStyleSheet("color: red;")
                 self.layout.addWidget(error_label)
                 return
-            OrmFunc.delete_department(int(id))
+            try:
+                OrmFunc.delete_department(int(id))
+            except TypeError as e:
+                QMessageBox.information(self, "ERROR", "Department not found")
+
             self.show_departments()
         btn_submit.clicked.connect(handle_submit)
 
@@ -684,7 +786,13 @@ class AdminInterface(QWidget):
                 self.layout.addWidget(error_label)
                 return
             self.show_department_employees()
-            OrmFunc.create_departments_employees(int(dep_id), int(emp_id))
+            try:
+                OrmFunc.create_departments_employees(int(dep_id), int(emp_id))
+            except TypeError as e:
+                QMessageBox.information(self, "ERROR", "Department not found")
+
+            except Exception as e:
+                QMessageBox.information(self, "ERROR", "This employees has department")
 
         btn_submit.clicked.connect(handle_submit)
 
@@ -751,7 +859,11 @@ class AdminInterface(QWidget):
                 self.layout.addWidget(error_label)
                 return
             self.show_department_employees()
-            OrmFunc.update_employees_departments(int(dep_id), int(emp_id_old), int(emp_id_new))
+            try:
+                OrmFunc.update_employees_departments(int(dep_id), int(emp_id_old), int(emp_id_new))
+            except TypeError:
+                QMessageBox.information(self, "ERROR", "Department or employee not found")
+
         btn_submit.clicked.connect(handle_submit)
 
         self.add_back_button()
@@ -781,7 +893,10 @@ class AdminInterface(QWidget):
                 self.layout.addWidget(error_label)
                 return
             self.show_department_employees()
-            OrmFunc.delete_department_employee(int(dep_id), int(emp_id))
+            try:
+                OrmFunc.delete_department_employee(int(dep_id), int(emp_id))
+            except TypeError:
+                QMessageBox.information(self, "ERROR", "Department or employee not found")
         btn_submit.clicked.connect(handle_submit)
 
         self.add_back_button()

@@ -17,7 +17,7 @@ class OrmFunc:
     @staticmethod
     def create_tables():
         sync_engine.echo = False
-        Base.metadata.drop_all(sync_engine)
+        # Base.metadata.drop_all(sync_engine)
         Base.metadata.create_all(sync_engine)
         sync_engine.echo = False
 
@@ -67,7 +67,7 @@ class OrmFunc:
     def create_projects(name: str, cost: float, department: Optional[int],
                         date_beg: Optional[datetime.date], date_end: Optional[datetime.date],
                         date_real_end: Optional[datetime.date]):
-        try:
+        # try:
             with session_factory() as session:  # Создаем сессию
                 projects = Projects(
                     name=name,
@@ -79,12 +79,12 @@ class OrmFunc:
                 )
                 session.add(projects)  # Добавляем объект
                 session.commit()  # Фиксируем изменения
-        except IntegrityError as e:
-            session.rollback()
-            print("Incorrect create projects, need write date_beg")
-        except ValueError as e:
-            session.rollback()
-            print(e.args)
+        # except IntegrityError as e:
+        #     session.rollback()
+        #     print("Incorrect create projects, need write date_beg")
+        # except ValueError as e:
+        #     session.rollback()
+        #     print(e.args)
 
     @staticmethod
     def check_user_exists(user_name: str, password: str) -> bool:
@@ -129,70 +129,83 @@ class OrmFunc:
         with session_factory() as session:
             query = select(Projects).where(Projects.id == project_id)
             result = session.execute(query)
-            try:
-                project = result.scalar_one()  # Получаем единственный результат
-                project.date_real_end = date_real_end  # Обновляем дату окончания
-                session.commit()  # Сохраняем изменения в базе данных
-            except Exception:
-                print(f"Project not found.")
+            # try:
+            # project = result.scalar_one()  # Получаем единственный результат
+            project = result.scalar_one_or_none()
+            if project is None:
+                raise TypeError()
+            project.date_real_end = date_real_end  # Обновляем дату окончания
+            session.commit()  # Сохраняем изменения в базе данных
+            # except Exception:
+            #     print(f"Project not found.")
 
     @staticmethod
     def update_date_end(project_id: int, date_end: datetime.date):
         with session_factory() as session:
             query = select(Projects).where(Projects.id == project_id)
             result = session.execute(query)
-            try:
-                project = result.scalar_one()
-                project.date_end = date_end
-                session.commit()
-            except Exception:
-                print(f"Project not found.")
+            # try:
+            project = result.scalar_one()
+            project.date_end = date_end
+            session.commit()
+            # except Exception:
+            #     print(f"Project not found.")
     @staticmethod
     def update_name_project(id: int, new_name: str):
         with session_factory() as session:
             query = select(Projects).where(Projects.id == id)
             result = session.execute(query)
-            try:
-                project = result.scalar_one()
-                project.name = new_name
-                session.commit()
-            except Exception:
-                print(f"Project not found.")
+            # try:
+            project = result.scalar_one_or_none()
+            if project is None:
+                raise TypeError()
+            project.name = new_name
+            session.commit()
+            # except Exception:
+            #     print(f"Project not found.")
     @staticmethod
-    def update_department_project(name: str, department_id: int):
+    def update_department_project(priject_id: int, department_id: int):
         with session_factory() as session:
-            query = select(Projects).where(Projects.name == name)
+            query = select(Projects).where(Projects.id == priject_id)
             result = session.execute(query)
-            try:
-                project = result.scalar_one()
-                project.department_id = department_id
-                session.commit()
-            except Exception:
-                print(f"Department not found.")
+            # try:
+            department = session.execute(select(Projects).where(Departments.id == department_id)).scalar_one_or_none()
+            project = result.scalar_one_or_none()
+            if project is None or department is None:
+                raise TypeError()
+            project.department_id = department_id
+            session.commit()
+
+            # except Exception:
+            #     print(f"Department not found.")
 
     @staticmethod
     def update_employees_departments(departments: int, employee_old: int, employee_new: int):
-        try:
+        # try:
             with session_factory() as session:
-                departments_employees = session.get(DepartmentsEmployees, departments, employee_old)
+                departments_employees = session.get(DepartmentsEmployees, departments, employee_old).scalar_one_or_none()
+                if departments_employees is None:
+                    raise TypeError()
                 departments_employees.employee_id = employee_new
                 session.refresh(departments_employees)
                 session.commit()
-        except Exception as e:
-            session.rollback()
-            print("This employee has in this department")
+        # except Exception as e:
+        #     session.rollback()
+            # print("This employee has in this department")
 
     @staticmethod
     def update_name_department(id: int, new_name: str):
         with session_factory() as session:
             query = select(Departments).where(Departments.id == id)
             result = session.execute(query)
-            try:
-                department = result.scalar_one()
-                department.name = new_name
-                session.commit()
-            except Exception:
-                print(f"Department not found.")
+            # try:
+            department = result.scalar_one_or_none()
+            if department is None:
+                raise TypeError()
+            department.name = new_name
+            session.commit()
+            # except Exception:
+            #     print(f"Department not found.")
 
 
     @staticmethod
@@ -200,49 +213,72 @@ class OrmFunc:
         with session_factory() as session:
             query = select(Employees).where(Employees.id == id)
             result = session.execute(query)
-            try:
-                employees = result.scalar_one()
-                employees.first_name = new_first_name
-                employees.father_name = new_father_name
-                employees.last_name = new_last_name
-                session.commit()
-            except Exception:
-                print(f"Employees not found.")
+            # try:
+            employees = result.scalar_one_or_none()
+            if employees is None:
+                raise TypeError()
+            employees.first_name = new_first_name
+            employees.father_name = new_father_name
+            employees.last_name = new_last_name
+            session.commit()
+            # except Exception:
+            #     print(f"Employees not found.")
 
     @staticmethod
     def update_salary_employees(employee_id: int, salary: float):
         with session_factory() as session:
             query = select(Employees).where(Employees.id == employee_id)
             result = session.execute(query)
-            try:
-                employees = result.scalar_one()
-                employees.salary = salary
-                session.commit()
-            except Exception:
-                print(f'Employees not found')
+            # try:
+            employees = result.scalar_one_or_none()
+            if employees is None:
+                raise TypeError()
+            employees.salary = salary
+            session.commit()
+            # except Exception:
+            #     print(f'Employees not found')
 
     @staticmethod
     def update_position_employees(employee_id: int, position: str):
         with session_factory() as session:
             query = select(Employees).where(Employees.id == employee_id)
             result = session.execute(query)
-            try:
-                employees = result.scalar_one()
-                employees.position = position
-                session.commit()
-            except Exception:
-                print(f'Employees not found')
+            # try:
+            employees = result.scalar_one_or_none()
+            if employees is None:
+                raise TypeError()
+            employees.position = position
+            session.commit()
+            # except Exception:
+            #     print(f'Employees not found')
 
     @staticmethod
     def delete_project(project_id: int):
         with session_factory() as session:
-            stmt = delete(Projects).where(Projects.id == project_id)
-            session.execute(stmt)
+            stmt = select(Projects).where(Projects.id == project_id)
+            res = session.execute(stmt)
+            projects = res.scalar_one_or_none()
+            if projects is None:
+                raise TypeError()
+            del_p = delete(Projects).where(Projects.id == project_id)
+            session.execute(del_p)
             session.commit()
 
     @staticmethod
     def delete_department_employee(department: int, employee_id: int):
         with session_factory() as session:
+            query = (
+                select(DepartmentsEmployees)
+                .filter(and_(
+                    DepartmentsEmployees.department_id == department,
+                    DepartmentsEmployees.employee_id == employee_id
+                ))
+            )
+
+            res = session.execute(query).scalar_one_or_none()
+
+            if res is None:
+                raise TypeError()
             stmt = delete(DepartmentsEmployees).filter(and_(DepartmentsEmployees.department_id == department,
                                                             DepartmentsEmployees.employee_id == employee_id))
             session.execute(stmt)
@@ -251,6 +287,10 @@ class OrmFunc:
     @staticmethod
     def delete_department(department_id: int):
         with session_factory() as session:
+            query = select(Departments).where(Departments.id == department_id)
+            res = session.execute(query).scalar_one_or_none()
+            if res is None:
+                raise TypeError()
             stmt = delete(Departments).where(Departments.id == department_id)
             session.execute(stmt)
             session.commit()
@@ -258,6 +298,10 @@ class OrmFunc:
     @staticmethod
     def delete_empoyee(employee: int):
         with session_factory() as session:
+            query = select(Employees).where(Employees.id == employee)
+            res = session.execute(query).scalar_one_or_none()
+            if res is None:
+                raise TypeError()
             stmt = delete(Employees).where(Employees.id == employee)
             session.execute(stmt)
             session.commit()

@@ -1,7 +1,7 @@
 from typing import Optional, Annotated
 from sqlalchemy import Table, Column, Integer, String, ForeignKey, DateTime, func, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship, MappedColumn
-from Kursovik.DB.Core.base import Base, str_256
+from data_base_application_kursovik.Kursovik.DB.Core.base import Base, str_256
 from datetime import datetime
 
 class Departments(Base):

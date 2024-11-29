@@ -32,6 +32,7 @@ class UserInterface(QWidget):
     def create_main_screen(self):
         self.layout.addWidget(QLabel("Welcome User:", alignment=Qt.AlignCenter))
         self.layout.addWidget(QLabel("Select Table:", alignment=Qt.AlignCenter))
+        self.setGeometry(100, 100, 600, 300)
 
         btn_table1 = QPushButton("Projects")
         btn_table1.clicked.connect(lambda: self.show_projects())
@@ -73,6 +74,7 @@ class UserInterface(QWidget):
     def show_projects(self):
         self.clear_layout()
         projects = OrmFunc.return_projects()
+        self.setGeometry(100, 100, 1000, 600)
         table_widget = self.create_table_widget(len(projects), 7,["ID", "Name", "Cost", "Department", "date_beg",
                                                      "date_end", "date_real_end"])
         # Заполняем таблицу
@@ -91,6 +93,7 @@ class UserInterface(QWidget):
     def show_profit_projects(self):
         self.clear_layout()
         profit = OrmFunc.calculate_projects_cost()
+        self.setGeometry(100, 100, 1000, 600)
         table_widget = self.create_table_widget(len(profit), 2, ["Name", "Profit"])
 
         for row_index, project in enumerate(profit):
@@ -102,6 +105,7 @@ class UserInterface(QWidget):
     def show_employees(self):
         self.clear_layout()
         employees = OrmFunc.select_all_employees()
+        self.setGeometry(100, 100, 1000, 600)
         table_widget = self.create_table_widget(len(employees), 6, ["Id", "First Name", "Father Name",
                                                                     "Last Name", "Position", "Salary"])
         for row_index, employee in enumerate(employees):
@@ -118,6 +122,7 @@ class UserInterface(QWidget):
     def show_departments(self):
         self.clear_layout()
         departments = OrmFunc.select_all_departments()
+        self.setGeometry(100, 100, 1000, 600)
         table_widget = self.create_table_widget(len(departments), 2,["Id", "Department"])
 
         for row_index, department in enumerate(departments):
@@ -129,6 +134,7 @@ class UserInterface(QWidget):
     def show_department_employees(self):
         self.clear_layout()
         department_employees = OrmFunc.select_all_departments_employees()
+        self.setGeometry(100, 100, 1000, 600)
         table_widget = self.create_table_widget(len(department_employees),3,["Id", "Department_id", "Employee_id"])
 
         for row_index, department_empl in enumerate(department_employees):
